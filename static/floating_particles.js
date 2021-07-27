@@ -45,8 +45,11 @@ class Particle {
             this.accY = (this.origin.y - this.y) / 1000;
         }
 
-        this.vx = clamp(this.vx + this.accX + random(-2, 2), -2, 2);
-        this.vy = clamp(this.vy + this.accY + random(-2, 2), -2, 2);
+        this.accX += random(-1, 1);
+        this.accY += random(-1, 1);
+
+        this.vx = (this.vx + this.accX) * (1 - (this.r / 200));
+        this.vy = (this.vy + this.accY) * (1 - (this.r / 100));
 
         this.x += this.vx;
         this.y += this.vy;
