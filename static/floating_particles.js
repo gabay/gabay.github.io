@@ -5,7 +5,6 @@ var ctx = canvas.getContext("2d");
 var particles = [];
 var mouse = {x:-999, y:-999};
 var radius = 100;
-var particleDistance = 50;
 
 
 var colors = ["#468966","#FFF0A5", "#FFB03B","#B64926", "#8E2800"];     // Original
@@ -14,16 +13,22 @@ var colors = ["#3c3c3c", "#696969", "#969696", "#c3c3c3"];    // Grayscale
 var ww = canvas.width = window.innerWidth;
 var wh = canvas.height = window.innerHeight;
 
+const PARTICLE_DISTANCE = 50;
+const MIN_RADIUS = 5, MAX_RADIUS = 15;
+const INITIAL_SPEED = 20;
+const RANDOM_ACCELERATION = 1;
+const DRAG = 0.005;
+
 // Particle functionality
 
 class Particle {
     constructor(x, y) {
         this.origin = {x: x, y: y};
-        this.x = x + random(-ww / 2, ww / 2);
-        this.y = y + random(-wh / 2, wh / 2);;
-        this.r = random(5, 15);
-        this.vx = random(-20, 20);
-        this.vy = random(-20, 20);
+        this.x = random(0, ww);
+        this.y = random(0, wh);;
+        this.r = random(MIN_RADIUS, MAX_RADIUS);
+        this.vx = random(-INITIAL_SPEED, INITIAL_SPEED);
+        this.vy = random(-INITIAL_SPEED, INITIAL_SPEED);
         this.accX = 0;
         this.accY = 0;
 
@@ -44,12 +49,11 @@ class Particle {
             this.accX = (this.origin.x - this.x) / 1000;
             this.accY = (this.origin.y - this.y) / 1000;
         }
+        this.accX += random(-RANDOM_ACCELERATION, RANDOM_ACCELERATION);
+        this.accY += random(-RANDOM_ACCELERATION, RANDOM_ACCELERATION);
 
-        this.accX += random(-1, 1);
-        this.accY += random(-1, 1);
-
-        this.vx = (this.vx + this.accX) * (1 - (this.r / 200));
-        this.vy = (this.vy + this.accY) * (1 - (this.r / 100));
+        this.vx = (this.vx + this.accX) * (1 - (DRAG * this.r));
+        this.vy = (this.vy + this.accY) * (1 - (DRAG * this.r));
 
         this.x += this.vx;
         this.y += this.vy;
@@ -78,39 +82,42 @@ function distance(ax, ay, bx, by) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-function onMouseMove(e){
+function onPointerDown(e) {
+    console.log(e);
     mouse.x = e.offsetX;
     mouse.y = e.offsetY;
 }
 
-function onTouchMove(e){
-    if(e.touches.length > 0 ){
-        mouse.x = e.touches[0].offsetX;
-        mouse.y = e.touches[0].offsetY;
-    }
+function onPointerMove(e) {
+    console.log(e);
+    mouse.x = e.offsetX;
+    mouse.y = e.offsetY;
 }
 
-function onTouchEnd(e){
+function onPointerUp(e) {
+    console.log(e);
     mouse.x = -999;
     mouse.y = -999;
+}
+
+function onClick() {
+    radius = (radius + 100) % 500;
 }
 
 function initScene(){
     ww = canvas.width = window.innerWidth;
     wh = canvas.height = window.innerHeight;
+    console.log("Width: " + ww);
+    console.log("Height: " + wh);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     particles = [];
-    for(var i=0; i<ww; i+=particleDistance) {
-        for(var j=0; j<wh; j+=particleDistance) {
+    for(var i=0; i<ww; i+=PARTICLE_DISTANCE) {
+        for(var j=0; j<wh; j+=PARTICLE_DISTANCE) {
             particles.push(new Particle(i,j));
         }
     }
-}
-
-function onMouseClick() {
-    radius = (radius + 100) % 500;
 }
 
 function render(a) {
@@ -124,10 +131,11 @@ function render(a) {
 // Initialization
 
 window.addEventListener("resize", initScene);
-canvas.addEventListener("mousemove", onMouseMove);
-canvas.addEventListener("touchmove", onTouchMove);
-window.addEventListener("click", onMouseClick);
-window.addEventListener("touchend", onTouchEnd);
+
+canvas.addEventListener("pointerdown", onPointerDown);
+canvas.addEventListener("pointermove", onPointerMove);
+canvas.addEventListener("pointerup", onPointerUp);
+canvas.addEventListener("click", onClick);
 
 initScene();
 requestAnimationFrame(render);
