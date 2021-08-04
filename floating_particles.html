@@ -24,6 +24,32 @@
       </ul>
     </nav>
 
+
+    <div dir="ltr">
+      <form>
+        Particle size (px):
+          <input id="min-size" type="number" min="1" max="100" value="5"/>
+          -
+          <input id="max-size" type="number" value="15"/>
+        <br/>
+        Particle spacing (px): <input id="spacing" type="number" value="50"/>
+        <br/>
+        Particle rotation (degress / frame): <input id="rotation" type="number" value="5"/>
+        <br/>
+        Maximum random acceleration (px / frame): <input id="acceleration" type="number" value="1"/>
+        <br/>
+        Drag force (% / particle size): <input id="drag" type="number" value="0.005"/>
+        <br/>
+
+        <input id="shape-circle" type="button" value="Circle"/>
+        <input id="shape-line" type="button" value="Line"/>
+
+        <br/>
+
+        <input id="reset" type="reset" value="Reset"/>
+      </form>
+    </div>
+
     <canvas id="scene"></canvas>
 
     <script src="/static/floating_particles.js"></script>
