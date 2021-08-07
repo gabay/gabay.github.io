@@ -1,0 +1,22 @@
+canvas {
+  margin: 5px;
+  border: solid 2px brown;
+}
+
+/*
+@media screen and (min-width: 801px) {
+  canvas {
+    background-image: url("/static/image/avira_desktop.png");
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  canvas {
+    background-image: url("/static/image/avira_mobile.png");
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+}
+*/

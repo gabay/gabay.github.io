@@ -15,7 +15,7 @@ var resetInput = document.querySelector("#reset");
 var particles = [];
 var mouse = {x:-999, y:-999};
 var radius = 100;
-
+var image = new Image();
 
 var colors = ["#468966","#FFF0A5", "#FFB03B","#B64926", "#8E2800"];     // Original
 var colors = ["#3c3c3c", "#696969", "#969696", "#c3c3c3"];    // Grayscale
@@ -23,12 +23,12 @@ var colors = ["#3c3c3c", "#696969", "#969696", "#c3c3c3"];    // Grayscale
 var ww = canvas.width = window.innerWidth;
 var wh = canvas.height = window.innerHeight;
 
-var PARTICLE_DISTANCE = 50;
-var MIN_SIZE = 5, MAX_SIZE = 15;
-var RANDOM_ROTATION = (2 * Math.PI) / 60;
-var INITIAL_SPEED = 20;
-var RANDOM_ACCELERATION = 1;
-var DRAG = 0.005;
+var PARTICLE_DISTANCE = Number(spacingInput.value);
+var MIN_SIZE = Number(minSizeInput.value), MAX_SIZE = Number(maxSizeInput.value);
+var RANDOM_ROTATION = Number(rotationInput.value) * 2 * Math.PI / 360;
+var INITIAL_SPEED = 1;
+var RANDOM_ACCELERATION = Number(accelerationInput.value);
+var DRAG = Number(dragInput.value);
 var SHAPE = "circle";
 
 // Particle functionality
@@ -36,8 +36,8 @@ var SHAPE = "circle";
 class Particle {
     constructor(x, y) {
         this.origin = {x: x, y: y};
-        this.x = random(0, ww);
-        this.y = random(0, wh);;
+        this.x = x; //random(0, ww);
+        this.y = y; //random(0, wh);;
         this.size = random(MIN_SIZE, MAX_SIZE);
         this.rotation = random(0, 2 * Math.PI);
         this.vx = random(-INITIAL_SPEED, INITIAL_SPEED);
@@ -128,8 +128,8 @@ function onClick() {
 }
 
 function initScene() {
-    ww = canvas.width = window.innerWidth;
-    wh = canvas.height = window.innerHeight;
+    ww = canvas.width = window.innerWidth * 0.95;
+    // wh = canvas.height = window.innerHeight * 0.9;
 
     PARTICLE_DISTANCE = Number(spacingInput.value);
     MIN_SIZE = Number(minSizeInput.value);
@@ -139,22 +139,65 @@ function initScene() {
     DRAG = Number(dragInput.value);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles = [];
+    initImageAndParticles();
+}
+
+function initImageAndParticles() {
+    if (ww <= 800) {
+        image.src = "/static/image/avira_mobile.png"
+    } else {
+        image.src = "/static/image/avira_desktop.png"
+    }
+    image.onload = (e) => initParticles();
+}
+function initParticles() {
+    renderImage();
+    const imageData = ctx.getImageData(0, 0, ww, wh);
+    const data  = imageData.data;
+    ctx.clearRect(0, 0, ww, wh);
 
     particles = [];
-    for(var i=0; i<ww; i+=PARTICLE_DISTANCE) {
-        for(var j=0; j<wh; j+=PARTICLE_DISTANCE) {
-            particles.push(new Particle(i,j));
+    for(var y=0; y<imageData.height; y+=3) {
+        for(var x=0; x<imageData.width; x+=3) {
+            const pos = ((y * imageData.width) + x) * 4;
+            const r = data[pos], g = data[pos + 1], b = data[pos + 2], a = data[pos + 3];
+            const intensity = r + g + b / 3;
+            if(intensity < 200) {
+                particles.push(new Particle(x, y));
+            }
         }
     }
 }
 
-function render(a) {
+function render() {
     requestAnimationFrame(render);
+    clear();
+    renderImage();
+    renderParticles();
+}
+
+function clear() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function renderImage() {
+    ctx.drawImage(image, 0, 0, ww, wh);
+}
+
+function renderParticles() {
     for (var i = 0; i < particles.length; i++) {
         particles[i].render();
     }
-};
+}
+
+// function renderGradient() {
+//     const gradient = ctx.createLinearGradient(0, 0, ww, 0);
+//     gradient.addColorStop(0, 'white');
+//     gradient.addColorStop(1, 'black');
+//     ctx.fillStyle = gradient;
+//     ctx.fillRect(0, 0, ww, wh);
+// }
 
 function setShapeCircle() {
     SHAPE = "circle";
