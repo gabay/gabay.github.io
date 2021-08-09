@@ -13,8 +13,7 @@ var shapeLineInput = document.querySelector("#shape-line");
 var resetInput = document.querySelector("#reset");
 
 var particles = [];
-var mouse = {x:-999, y:-999};
-var radius = 100;
+var mouse = {x:0, y:0, radius:0};
 var image = new Image();
 
 var colors = ["#468966","#FFF0A5", "#FFB03B","#B64926", "#8E2800"];     // Original
@@ -30,6 +29,9 @@ var INITIAL_SPEED = 1;
 var RANDOM_ACCELERATION = Number(accelerationInput.value);
 var DRAG = Number(dragInput.value);
 var SHAPE = "circle";
+var MOUSE_MOVE_RADIUS_CHANGE = 5;
+var MOUSE_IDLE_RADIUS_CHANGE = -2;
+var MOUSE_MAX_RADIUS = 250;
 
 // Particle functionality
 
@@ -55,7 +57,7 @@ class Particle {
     }
 
     accelerate() {
-        if (distance(this.x, this.y, mouse.x, mouse.y) < radius) {
+        if (distance(this.x, this.y, mouse.x, mouse.y) < mouse.radius) {
             this.accX = (this.x - mouse.x) / 100;
             this.accY = (this.y - mouse.y) / 100;
         } else {
@@ -116,15 +118,15 @@ function onPointerDown(e) {
 function onPointerMove(e) {
     mouse.x = e.offsetX;
     mouse.y = e.offsetY;
+    mouse.radius = clamp(mouse.radius + MOUSE_MOVE_RADIUS_CHANGE, 0, MOUSE_MAX_RADIUS);
 }
 
 function onPointerUp(e) {
-    mouse.x = -999;
-    mouse.y = -999;
+    mouse.radius = 0;
 }
 
 function onClick() {
-    radius = (radius + 100) % 500;
+    mouse.radius = clamp(mouse.radius + MOUSE_MOVE_RADIUS_CHANGE, 0, MOUSE_MAX_RADIUS);
 }
 
 function initScene() {
@@ -170,11 +172,21 @@ function initParticles() {
     }
 }
 
+function updateLoop() {
+    requestAnimationFrame(updateLoop);
+    update();
+    render();
+}
+
+function update() {
+    mouse.radius = clamp(mouse.radius + MOUSE_IDLE_RADIUS_CHANGE, 0, MOUSE_MAX_RADIUS);
+}
+
 function render() {
-    requestAnimationFrame(render);
     clear();
     renderImage();
     renderParticles();
+    renderTexts();
 }
 
 function clear() {
@@ -189,6 +201,34 @@ function renderParticles() {
     for (var i = 0; i < particles.length; i++) {
         particles[i].render();
     }
+}
+
+function renderTexts() {
+    ctx.fillStyle = "black";
+    ctx.font = "bold 15px sans-serif";
+    ctx.textAlign = "left";
+    renderNumberOfParticlesText();
+    renderFPSText();
+}
+
+function renderNumberOfParticlesText() {
+    ctx.fillText("Particles: " + particles.length, 10, 15);
+}
+
+function renderFPSText() {
+    var fps = calculateFPS();
+    ctx.fillText("FPS:" + fps.toPrecision(3), 10, 30);
+}
+
+var lastCallTime = 0;
+function calculateFPS() {
+    var previousTime = lastCallTime;
+    var currentTime = lastCallTime = performance.now();
+    if (previousTime === undefined || previousTime >= currentTime) {
+        return 0;
+    }
+    // fps = 1000ms / time to render frame (in ms)
+    return 1000 / (currentTime - previousTime);
 }
 
 // function renderGradient() {
@@ -228,4 +268,4 @@ canvas.addEventListener("pointerup", onPointerUp);
 canvas.addEventListener("click", onClick);
 
 initScene();
-requestAnimationFrame(render);
+requestAnimationFrame(updateLoop);
