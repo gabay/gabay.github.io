@@ -1,13 +1,22 @@
 
 // Global variables
+
 var canvas = document.querySelector("#scene");
 var ctx = canvas.getContext("2d");
-var minSizeInput = document.querySelector("#min-size");
-var maxSizeInput = document.querySelector("#max-size");
-var spacingInput = document.querySelector("#spacing");
-var rotationInput = document.querySelector("#rotation");
-var accelerationInput = document.querySelector("#acceleration");
-var dragInput = document.querySelector("#drag");
+
+var INPUTS = {
+    minSize: document.querySelector("#min-size"),
+    maxSize: document.querySelector("#max-size"),
+    rotation: document.querySelector("#rotation"),
+    normalAcceleration: document.querySelector("#normal-acceleration"),
+    mouseAcceleration: document.querySelector("#mouse-acceleration"),
+    randomAcceleration: document.querySelector("#random-acceleration"),
+    drag: document.querySelector("#drag"),
+    mouseRadiusChangeByMove: document.querySelector("#mouse-radius-change-by-move"),
+    mouseRadiusChangeByClick: document.querySelector("#mouse-radius-change-by-click"),
+    mouseRadiusDecay: document.querySelector("#mouse-radius-decay"),
+    mouseMaxRadius: document.querySelector("#mouse-max-radius")
+}
 var shapeCircleInput = document.querySelector("#shape-circle");
 var shapeLineInput = document.querySelector("#shape-line");
 var resetInput = document.querySelector("#reset");
@@ -16,22 +25,32 @@ var particles = [];
 var mouse = {x:0, y:0, radius:0};
 var image = new Image();
 
-var colors = ["#468966","#FFF0A5", "#FFB03B","#B64926", "#8E2800"];     // Original
+// var colors = ["#468966","#FFF0A5", "#FFB03B","#B64926", "#8E2800"];     // Original
 var colors = ["#3c3c3c", "#696969", "#969696", "#c3c3c3"];    // Grayscale
 
 var ww = canvas.width = window.innerWidth;
 var wh = canvas.height = window.innerHeight;
 
-var PARTICLE_DISTANCE = Number(spacingInput.value);
-var MIN_SIZE = Number(minSizeInput.value), MAX_SIZE = Number(maxSizeInput.value);
-var RANDOM_ROTATION = Number(rotationInput.value) * 2 * Math.PI / 360;
-var INITIAL_SPEED = 1;
-var RANDOM_ACCELERATION = Number(accelerationInput.value);
-var DRAG = Number(dragInput.value);
+var CONF = {};
 var SHAPE = "circle";
-var MOUSE_MOVE_RADIUS_CHANGE = 5;
-var MOUSE_IDLE_RADIUS_CHANGE = -2;
-var MOUSE_MAX_RADIUS = 250;
+
+// Util functionality
+
+function clamp(val, min, max) {
+    if (val < min) { return min; }
+    if (val > max) { return max; }
+    return val;
+}
+
+function random(min, max) {
+    return min + (Math.random() * (max - min));
+}
+
+function distance(ax, ay, bx, by) {
+    dx = ax - bx;
+    dy = ay - by;
+    return Math.sqrt(dx * dx + dy * dy);
+}
 
 // Particle functionality
 
@@ -40,40 +59,39 @@ class Particle {
         this.origin = {x: x, y: y};
         this.x = x; //random(0, ww);
         this.y = y; //random(0, wh);;
-        this.size = random(MIN_SIZE, MAX_SIZE);
+        this.size = random(CONF.particle.minSize, CONF.particle.maxSize);
         this.rotation = random(0, 2 * Math.PI);
-        this.vx = random(-INITIAL_SPEED, INITIAL_SPEED);
-        this.vy = random(-INITIAL_SPEED, INITIAL_SPEED);
+        this.vx = 0;
+        this.vy = 0;
         this.accX = 0;
         this.accY = 0;
 
         this.color = colors[Math.floor(Math.random() * colors.length)];
     }
 
-    render() {
-        this.accelerate();
-
-        this.draw();
+    update(elapsed) {
+        this.accelerate(elapsed);
     }
 
-    accelerate() {
+    accelerate(elapsed) {
         if (distance(this.x, this.y, mouse.x, mouse.y) < mouse.radius) {
-            this.accX = (this.x - mouse.x) / 100;
-            this.accY = (this.y - mouse.y) / 100;
+            this.accX = (this.x - mouse.x) * CONF.particle.mouseAcceleration * elapsed;
+            this.accY = (this.y - mouse.y) * CONF.particle.mouseAcceleration * elapsed;
         } else {
-            this.accX = (this.origin.x - this.x) / 1000;
-            this.accY = (this.origin.y - this.y) / 1000;
+            this.accX = (this.origin.x - this.x) * CONF.particle.normalAcceleration * elapsed;
+            this.accY = (this.origin.y - this.y) * CONF.particle.normalAcceleration * elapsed;
         }
-        this.accX += random(-RANDOM_ACCELERATION, RANDOM_ACCELERATION);
-        this.accY += random(-RANDOM_ACCELERATION, RANDOM_ACCELERATION);
+        this.accX += random(-CONF.particle.randomAcceleration * elapsed, CONF.particle.randomAcceleration * elapsed);
+        this.accY += random(-CONF.particle.randomAcceleration * elapsed, CONF.particle.randomAcceleration * elapsed);
 
-        this.vx = (this.vx + this.accX) * (1 - (DRAG * this.size));
-        this.vy = (this.vy + this.accY) * (1 - (DRAG * this.size));
+        this.vx = (this.vx + this.accX) * (1 - CONF.particle.drag) * elapsed;
+        this.vy = (this.vy + this.accY) * (1 - CONF.particle.drag) * elapsed;
 
         this.x += this.vx;
         this.y += this.vy;
 
-        this.rotation += random(-RANDOM_ROTATION, RANDOM_ROTATION);
+        this.rotation += random(-CONF.particle.rotation * elapsed,
+             CONF.particle.rotation * elapsed);
     }
 
     draw() {
@@ -95,177 +113,246 @@ class Particle {
     }
 }
 
-function clamp(val, min, max) {
-    if (val < min) { return min; }
-    if (val > max) { return max; }
-    return val;
-}
-function random(min, max) {
-    return min + (Math.random() * (max - min));
+// Renderer
+
+class Renderer {
+    constructor(startCallback, updateCallback) {
+        this.startFunction = () => this.start();
+        this.updateFunction = (timestamp) => this.update(timestamp);
+
+        this.startCallback = startCallback;
+        this.updateCallback = updateCallback;
+        this.animationFrameID = undefined;
+        this.previousTimestamp = performance.now();
+    }
+
+    start() {
+        if (this.animationFrameID != undefined) {
+            cancelAnimationFrame(this.animationFrameID);
+            this.animationFrameID = undefined;
+        }
+
+        this.startCallback();
+        this.requestAnimationFrame();
+    }
+
+    update(timestamp) {
+        this.requestAnimationFrame();
+
+        const elapsed = (timestamp - this.previousTimestamp) / 1000;
+        this.previousTimestamp = timestamp;
+
+        if (elapsed > 1) {
+            console.log("WARNING: update step greater than 1 second, not updating. " + elapsed);
+            return;
+        }
+
+        this.updateCallback(elapsed);
+    }
+
+    requestAnimationFrame() {
+        this.animationFrameID = requestAnimationFrame(this.updateFunction);
+    }
 }
 
-function distance(ax, ay, bx, by) {
-    dx = ax - bx;
-    dy = ay - by;
-    return Math.sqrt(dx * dx + dy * dy);
-}
+// Setup
 
-function onPointerDown(e) {
-    mouse.x = e.offsetX;
-    mouse.y = e.offsetY;
-}
-
-function onPointerMove(e) {
-    mouse.x = e.offsetX;
-    mouse.y = e.offsetY;
-    mouse.radius = clamp(mouse.radius + MOUSE_MOVE_RADIUS_CHANGE, 0, MOUSE_MAX_RADIUS);
-}
-
-function onPointerUp(e) {
-    mouse.radius = 0;
-}
-
-function onClick() {
-    mouse.radius = clamp(mouse.radius + MOUSE_MOVE_RADIUS_CHANGE, 0, MOUSE_MAX_RADIUS);
-}
-
-function initScene() {
-    ww = canvas.width = window.innerWidth * 0.95;
+function setup() {
+    ww = canvas.width = window.innerWidth - 20;
     // wh = canvas.height = window.innerHeight * 0.9;
 
-    PARTICLE_DISTANCE = Number(spacingInput.value);
-    MIN_SIZE = Number(minSizeInput.value);
-    MAX_SIZE = Number(maxSizeInput.value);
-    RANDOM_ROTATION = Number(rotationInput.value) * 2 * Math.PI / 360;
-    RANDOM_ACCELERATION = Number(accelerationInput.value);
-    DRAG = Number(dragInput.value);
+    CONF = {
+        particle: {
+            minSize: Number(INPUTS.minSize.value),
+            maxSize: Number(INPUTS.maxSize.value),
+            rotation: Number(INPUTS.rotation.value) * 2 * Math.PI / 360,
+            normalAcceleration: Number(INPUTS.normalAcceleration.value),
+            mouseAcceleration: Number(INPUTS.mouseAcceleration.value),
+            randomAcceleration: Number(INPUTS.randomAcceleration.value),
+            drag: Number(INPUTS.drag.value),
+            shape: SHAPE
+        },
+        mouse: {
+            radiusChangeByMove: Number(INPUTS.mouseRadiusChangeByMove.value),
+            radiusChangeByClick: Number(INPUTS.mouseRadiusChangeByClick.value),
+            radiusDecay: Number(INPUTS.mouseRadiusDecay.value),
+            maxRadius: Number(INPUTS.mouseMaxRadius.value)
+        }
+    };
+    console.log(CONF);
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    particles = [];
-    initImageAndParticles();
+    setupImageAndParticles();
 }
 
-function initImageAndParticles() {
+function setupImageAndParticles() {
     if (ww <= 800) {
         image.src = "/static/image/avira_mobile.png"
     } else {
         image.src = "/static/image/avira_desktop.png"
     }
-    image.onload = (e) => initParticles();
+    canvas.style.backgroundImage = "url(" + image.src + ")";
+    canvas.style.backgroundRepeat = "no-repeat";
+    canvas.style.backgroundSize = "100% 100%";
+    image.onload = (e) => setupParticles();
 }
-function initParticles() {
-    renderImage();
-    const imageData = ctx.getImageData(0, 0, ww, wh);
-    const data  = imageData.data;
-    ctx.clearRect(0, 0, ww, wh);
+
+function setupParticles() {
+    const imageData = getImageData();
+    const data = imageData.data;
 
     particles = [];
     for(var y=0; y<imageData.height; y+=3) {
         for(var x=0; x<imageData.width; x+=3) {
-            const pos = ((y * imageData.width) + x) * 4;
-            const r = data[pos], g = data[pos + 1], b = data[pos + 2], a = data[pos + 3];
-            const intensity = r + g + b / 3;
-            if(intensity < 200) {
+            if(getPixelIntensity(imageData, x, y) < 100) {
                 particles.push(new Particle(x, y));
             }
         }
     }
 }
 
-function updateLoop() {
-    requestAnimationFrame(updateLoop);
-    update();
-    render();
-}
-
-function update() {
-    mouse.radius = clamp(mouse.radius + MOUSE_IDLE_RADIUS_CHANGE, 0, MOUSE_MAX_RADIUS);
-}
-
-function render() {
+function getImageData() {
     clear();
-    renderImage();
-    renderParticles();
-    renderTexts();
+    ctx.drawImage(image, 0, 0, ww, wh);
+    const imageData = ctx.getImageData(0, 0, ww, wh);
+    clear();
+    return imageData;
+}
+
+function getPixelIntensity(imageData, x, y) {
+    const data = imageData.data;
+    const pos = ((y * imageData.width) + x) * 4;
+    const r = data[pos], g = data[pos + 1], b = data[pos + 2], a = data[pos + 3];
+    const intensity = (r + g + b) / 3;
+    return intensity;
+}
+
+// Update
+
+function updateAndDraw(elapsed) {
+    update(elapsed);
+    draw();
+}
+
+function update(elapsed) {
+    updateMouseRadius(elapsed);
+    updateParticles(elapsed);
+    updateTexts(elapsed);
+}
+
+function updateMouseRadius(elapsed) {
+    const change = CONF.mouse.radiusDecay * elapsed;
+    mouse.radius = clamp(mouse.radius + change, 0, CONF.mouse.maxRadius);
+}
+
+function updateParticles(elapsed) {
+    for (particle of particles) {
+        particle.update(elapsed);
+    }
+}
+
+function updateTexts(elapsed) {
+    calculateFPS(elapsed);
+}
+
+// Draw
+
+function draw() {
+    clear();
+    drawParticles();
+    drawTexts();
 }
 
 function clear() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function renderImage() {
-    ctx.drawImage(image, 0, 0, ww, wh);
-}
-
-function renderParticles() {
-    for (var i = 0; i < particles.length; i++) {
-        particles[i].render();
+function drawParticles(elapsed) {
+    for (particle of particles) {
+        particle.draw();
     }
 }
 
-function renderTexts() {
+function drawTexts(elapsed) {
     ctx.fillStyle = "black";
     ctx.font = "bold 15px sans-serif";
     ctx.textAlign = "left";
-    renderNumberOfParticlesText();
-    renderFPSText();
+    drawNumberOfParticlesText();
+    drawFPSText(elapsed);
 }
 
-function renderNumberOfParticlesText() {
+function drawNumberOfParticlesText() {
     ctx.fillText("Particles: " + particles.length, 10, 15);
 }
 
-function renderFPSText() {
-    var fps = calculateFPS();
-    ctx.fillText("FPS:" + fps.toPrecision(3), 10, 30);
+function drawFPSText(elapsed) {
+    ctx.fillText("FPS: " + fps.toPrecision(2), 10, 30);
 }
 
-var lastCallTime = 0;
-function calculateFPS() {
-    var previousTime = lastCallTime;
-    var currentTime = lastCallTime = performance.now();
-    if (previousTime === undefined || previousTime >= currentTime) {
-        return 0;
+var fps = 0;
+var elapses = 0;
+var elapsesTime = 0;
+function calculateFPS(elapsed) {
+    if (elapsed <= 0) {
+        return fps;
     }
-    // fps = 1000ms / time to render frame (in ms)
-    return 1000 / (currentTime - previousTime);
+
+    elapses += 1;
+    elapsesTime += elapsed;
+
+    if (elapsesTime > 0.5) {
+        fps = elapses / elapsesTime;
+        elapses = 0;
+        elapsesTime = 0;
+    }
+
+    return fps;
 }
 
-// function renderGradient() {
-//     const gradient = ctx.createLinearGradient(0, 0, ww, 0);
-//     gradient.addColorStop(0, 'white');
-//     gradient.addColorStop(1, 'black');
-//     ctx.fillStyle = gradient;
-//     ctx.fillRect(0, 0, ww, wh);
-// }
+// Event functionality
 
-function setShapeCircle() {
+function setShapeCircleAndstart() {
     SHAPE = "circle";
-    initScene();
+    renderer.start();
 }
 
-function setShapeLine() {
+function setShapeLineAndStart() {
     SHAPE = "line";
-    initScene();
+    renderer.start();
+}
+
+function onPointerDown(e) {}
+
+function onPointerMove(e) {
+    if (e.pointerType != "mouse") {
+        return;
+    }
+
+    mouse.x = e.offsetX;
+    mouse.y = e.offsetY;
+    mouse.radius = clamp(mouse.radius + CONF.mouse.radiusChangeByMove, 0, CONF.mouse.maxRadius);
+}
+
+function onPointerUp(e) {}
+
+function onClick(e) {
+    mouse.radius = clamp(mouse.radius + CONF.mouse.radiusChangeByClick, 0, CONF.mouse.maxRadius);
 }
 
 // Initialization
 
-window.addEventListener("resize", initScene);
-minSizeInput.addEventListener("keyup", initScene);
-maxSizeInput.addEventListener("keyup", initScene);
-spacingInput.addEventListener("keyup", initScene);
-rotationInput.addEventListener("keyup", initScene);
-accelerationInput.addEventListener("keyup", initScene);
-dragInput.addEventListener("keyup", initScene);
-shapeCircleInput.addEventListener("click", setShapeCircle);
-shapeLineInput.addEventListener("click", setShapeLine);
-resetInput.addEventListener("click", function() {setTimeout(initScene, 1);});
+const renderer = new Renderer(setup, updateAndDraw);
+
+window.addEventListener("resize", renderer.startFunction);
+for (name in INPUTS) {
+    INPUTS[name].addEventListener("keyup", renderer.startFunction);
+}
+shapeCircleInput.addEventListener("click", setShapeCircleAndstart);
+shapeLineInput.addEventListener("click", setShapeLineAndStart);
+resetInput.addEventListener("click", (e) => setTimeout(renderer.startFunction, 1));
 
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);
 canvas.addEventListener("pointerup", onPointerUp);
 canvas.addEventListener("click", onClick);
 
-initScene();
-requestAnimationFrame(updateLoop);
+renderer.start();
