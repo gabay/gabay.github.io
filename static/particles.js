@@ -5,6 +5,7 @@ var canvas = document.querySelector("#scene");
 var ctx = canvas.getContext("2d");
 
 var INPUTS = {
+    count: document.querySelector("#count"),
     minSize: document.querySelector("#min-size"),
     maxSize: document.querySelector("#max-size"),
     rotation: document.querySelector("#rotation"),
@@ -12,6 +13,11 @@ var INPUTS = {
     mouseAcceleration: document.querySelector("#mouse-acceleration"),
     randomAcceleration: document.querySelector("#random-acceleration"),
     drag: document.querySelector("#drag"),
+    movingParticlesCount: document.querySelector("#moving-particles-count"),
+    movingParticlesStartX: document.querySelector("#moving-particles-start-x"),
+    movingParticlesStartY: document.querySelector("#moving-particles-start-y"),
+    movingParticlesEndX: document.querySelector("#moving-particles-end-x"),
+    movingParticlesEndY: document.querySelector("#moving-particles-end-y"),
     mouseRadiusChangeByMove: document.querySelector("#mouse-radius-change-by-move"),
     mouseRadiusChangeByClick: document.querySelector("#mouse-radius-change-by-click"),
     mouseRadiusDecay: document.querySelector("#mouse-radius-decay"),
@@ -165,6 +171,7 @@ function setup() {
 
     CONF = {
         particle: {
+            count: Number(INPUTS.count.value),
             minSize: Number(INPUTS.minSize.value),
             maxSize: Number(INPUTS.maxSize.value),
             rotation: Number(INPUTS.rotation.value) * 2 * Math.PI / 360,
@@ -175,10 +182,11 @@ function setup() {
             shape: SHAPE
         },
         movingParticles: {
-            start: {x: 0.2, y: 0.5},
-            end: {x: 0.5, y: 0.2},
-            count: 200,
-            speed: 100,
+            count: Number(INPUTS.movingParticlesCount.value),
+            start: {x: Number(INPUTS.movingParticlesStartX.value),
+                    y: Number(INPUTS.movingParticlesStartY.value)},
+            end: {x: Number(INPUTS.movingParticlesEndX.value),
+                y: Number(INPUTS.movingParticlesEndY.value)}
         },
         mouse: {
             radiusChangeByMove: Number(INPUTS.mouseRadiusChangeByMove.value),
@@ -187,6 +195,7 @@ function setup() {
             maxRadius: Number(INPUTS.mouseMaxRadius.value)
         }
     };
+    console.log("Configuration:");
     console.log(CONF);
 
     setupImageAndParticles();
@@ -209,11 +218,11 @@ function setupParticles() {
     const data = imageData.data;
 
     particles = [];
-    for(var y=0; y<imageData.height; y+=3) {
-        for(var x=0; x<imageData.width; x+=3) {
-            if(getPixelIntensity(imageData, x, y) < 100) {
-                particles.push(new Particle(x, y));
-            }
+    while(particles.length < CONF.particle.count) {
+        x = Math.floor(random(0, imageData.width));
+        y = Math.floor(random(0, imageData.height));
+        if(getPixelIntensity(imageData, x, y) < 100) {
+            particles.push(new Particle(x, y));
         }
     }
 
@@ -225,8 +234,6 @@ function setupParticles() {
         const y = (mp.start.y * wh * (1 - prog)) + (mp.end.y * wh * prog);
         movingParticles.push(new Particle(x, y, mp.end.x * ww, mp.end.y * wh));
     }
-    console.log("MP: " + movingParticles.length);
-    console.log(movingParticles[0]);
 }
 
 function getImageData() {
