@@ -22,6 +22,7 @@ var shapeLineInput = document.querySelector("#shape-line");
 var resetInput = document.querySelector("#reset");
 
 var particles = [];
+var movingParticles = [];
 var mouse = {x:0, y:0, radius:0};
 var image = new Image();
 
@@ -55,10 +56,10 @@ function distance(ax, ay, bx, by) {
 // Particle functionality
 
 class Particle {
-    constructor(x, y) {
-        this.origin = {x: x, y: y};
-        this.x = x; //random(0, ww);
-        this.y = y; //random(0, wh);;
+    constructor(x, y, destX, destY) {
+        this.dest = {x: destX || x, y: destY || y};
+        this.x = x;
+        this.y = y;
         this.size = random(CONF.particle.minSize, CONF.particle.maxSize);
         this.rotation = random(0, 2 * Math.PI);
         this.vx = 0;
@@ -78,8 +79,8 @@ class Particle {
             this.accX = (this.x - mouse.x) * CONF.particle.mouseAcceleration * elapsed;
             this.accY = (this.y - mouse.y) * CONF.particle.mouseAcceleration * elapsed;
         } else {
-            this.accX = (this.origin.x - this.x) * CONF.particle.normalAcceleration * elapsed;
-            this.accY = (this.origin.y - this.y) * CONF.particle.normalAcceleration * elapsed;
+            this.accX = (this.dest.x - this.x) * CONF.particle.normalAcceleration * elapsed;
+            this.accY = (this.dest.y - this.y) * CONF.particle.normalAcceleration * elapsed;
         }
         this.accX += random(-CONF.particle.randomAcceleration * elapsed, CONF.particle.randomAcceleration * elapsed);
         this.accY += random(-CONF.particle.randomAcceleration * elapsed, CONF.particle.randomAcceleration * elapsed);
@@ -95,12 +96,13 @@ class Particle {
     }
 
     draw() {
-        ctx.fillStyle = this.color;
         ctx.beginPath();
         if (SHAPE == "circle") {
+            ctx.fillStyle = this.color;
             ctx.arc(this.x, this.y, this.size, Math.PI * 2, false);
             ctx.fill();
         } else if (SHAPE == "line") {
+            ctx.strokeStyle = this.color;
             let offsetX = this.size * Math.cos(this.rotation);
             let offsetY = this.size * Math.sin(this.rotation);
             ctx.moveTo(this.x - offsetX, this.y - offsetY);
@@ -172,6 +174,12 @@ function setup() {
             drag: Number(INPUTS.drag.value),
             shape: SHAPE
         },
+        movingParticles: {
+            start: {x: 0.2, y: 0.5},
+            end: {x: 0.5, y: 0.2},
+            count: 200,
+            speed: 100,
+        },
         mouse: {
             radiusChangeByMove: Number(INPUTS.mouseRadiusChangeByMove.value),
             radiusChangeByClick: Number(INPUTS.mouseRadiusChangeByClick.value),
@@ -208,6 +216,17 @@ function setupParticles() {
             }
         }
     }
+
+    const mp = CONF.movingParticles;
+    movingParticles = [];
+    for (var i=0; i < mp.count; i++) {
+        const prog = i / mp.count;
+        const x = (mp.start.x * ww * (1 - prog)) + (mp.end.x * ww * prog);
+        const y = (mp.start.y * wh * (1 - prog)) + (mp.end.y * wh * prog);
+        movingParticles.push(new Particle(x, y, mp.end.x * ww, mp.end.y * wh));
+    }
+    console.log("MP: " + movingParticles.length);
+    console.log(movingParticles[0]);
 }
 
 function getImageData() {
@@ -236,6 +255,7 @@ function updateAndDraw(elapsed) {
 function update(elapsed) {
     updateMouseRadius(elapsed);
     updateParticles(elapsed);
+    updateMovingParticles(elapsed);
     updateTexts(elapsed);
 }
 
@@ -250,6 +270,21 @@ function updateParticles(elapsed) {
     }
 }
 
+function updateMovingParticles(elapsed) {
+    const mp = CONF.movingParticles;
+
+    for(var i = 0; i < movingParticles.length; i++) {
+        const particle = movingParticles[i];
+        if (particle.x - particle.dest.x < 1 && particle.y - particle.dest.y < 1) {
+            movingParticles[i] = new Particle(mp.start.x * ww, mp.start.y * wh, mp.end.x * ww, mp.end.y * wh);
+        }
+    }
+
+    for(particle of movingParticles) {
+        particle.update(elapsed);
+    }
+}
+
 function updateTexts(elapsed) {
     calculateFPS(elapsed);
 }
@@ -259,6 +294,7 @@ function updateTexts(elapsed) {
 function draw() {
     clear();
     drawParticles();
+    drawMovingParticles();
     drawTexts();
 }
 
@@ -266,25 +302,31 @@ function clear() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawParticles(elapsed) {
+function drawParticles() {
     for (particle of particles) {
         particle.draw();
     }
 }
 
-function drawTexts(elapsed) {
+function drawMovingParticles() {
+    for (particle of movingParticles) {
+        particle.draw();
+    }
+}
+
+function drawTexts() {
     ctx.fillStyle = "black";
     ctx.font = "bold 15px sans-serif";
     ctx.textAlign = "left";
     drawNumberOfParticlesText();
-    drawFPSText(elapsed);
+    drawFPSText();
 }
 
 function drawNumberOfParticlesText() {
     ctx.fillText("Particles: " + particles.length, 10, 15);
 }
 
-function drawFPSText(elapsed) {
+function drawFPSText() {
     ctx.fillText("FPS: " + fps.toPrecision(2), 10, 30);
 }
 
