@@ -207,9 +207,9 @@ function setupImageAndParticles() {
     } else {
         image.src = "/static/image/avira_desktop.png"
     }
-    canvas.style.backgroundImage = "url(" + image.src + ")";
-    canvas.style.backgroundRepeat = "no-repeat";
-    canvas.style.backgroundSize = "100% 100%";
+    // canvas.style.backgroundImage = "url(" + image.src + ")";
+    // canvas.style.backgroundRepeat = "no-repeat";
+    // canvas.style.backgroundSize = "100% 100%";
     image.onload = (e) => setupParticles();
 }
 
@@ -392,8 +392,8 @@ function onClick(e) {
 const renderer = new Renderer(setup, updateAndDraw);
 
 window.addEventListener("resize", renderer.startFunction);
-for (name in INPUTS) {
-    INPUTS[name].addEventListener("keyup", renderer.startFunction);
+for (input in INPUTS) {
+    INPUTS[input].addEventListener("keyup", renderer.startFunction);
 }
 shapeCircleInput.addEventListener("click", setShapeCircleAndstart);
 shapeLineInput.addEventListener("click", setShapeLineAndStart);
