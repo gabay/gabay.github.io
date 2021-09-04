@@ -30,6 +30,7 @@ var resetInput = document.querySelector("#reset");
 var particles = [];
 var movingParticles = [];
 var mouse = {x:0, y:0, radius:0};
+var mouseMovements = [];
 var image = new Image();
 
 // var colors = ["#468966","#FFF0A5", "#FFB03B","#B64926", "#8E2800"];     // Original
@@ -59,6 +60,17 @@ function distance(ax, ay, bx, by) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
+function normal(x, y) {
+    return distance(0, 0, x, y);
+}
+
+function direction(x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const n = normal(dx, dy);
+    return {x: dx / n, y: dy / n};
+}
+
 // Particle functionality
 
 class Particle {
@@ -81,13 +93,17 @@ class Particle {
     }
 
     accelerate(elapsed) {
-        if (distance(this.x, this.y, mouse.x, mouse.y) < mouse.radius) {
+        if (false) { //distance(this.x, this.y, mouse.x, mouse.y) < mouse.radius) {
             this.accX = (this.x - mouse.x) * CONF.particle.mouseAcceleration * elapsed;
             this.accY = (this.y - mouse.y) * CONF.particle.mouseAcceleration * elapsed;
         } else {
             this.accX = (this.dest.x - this.x) * CONF.particle.normalAcceleration * elapsed;
             this.accY = (this.dest.y - this.y) * CONF.particle.normalAcceleration * elapsed;
         }
+        for (var mouseMovement of mouseMovements) {
+            mouseMovement.accelerateParticleIfNeeded(this, elapsed);
+        }
+
         this.accX += random(-CONF.particle.randomAcceleration * elapsed, CONF.particle.randomAcceleration * elapsed);
         this.accY += random(-CONF.particle.randomAcceleration * elapsed, CONF.particle.randomAcceleration * elapsed);
 
@@ -118,6 +134,47 @@ class Particle {
             alert("Unknown shape: " + SHAPE)
         }
 
+    }
+}
+
+// Mouse Movement
+
+class MouseMovement {
+    constructor(x1, y1, x2, y2, maxAge) {
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
+        this.age = 0;
+        this.maxAge = maxAge;
+        this.distance = distance(x1, y1, x2, y2);
+        this.direction = direction(x1, y1, x2, y2);
+        this.radius = 0;
+        this.force = 0;
+        this.active = true;
+    }
+
+    update(elapsed) {
+        this.age += elapsed;
+
+        const ageFraction = this.age / this.maxAge;
+        const multiplier = 2 * Math.min(ageFraction, 1 - ageFraction);
+        this.radius = this.distance * CONF.movement.rangeFraction * multiplier;
+        this.force = CONF.movement.force * multiplier;
+        this.active = this.age < this.maxAge;
+    }
+
+    distanceFromParticle(particle) {
+        const d1 = distance(this.x1, this.y1, particle.x, particle.y);
+        const d2 = distance(this.x2, this.y2, particle.x, particle.y);
+        return d1 + d2 - this.distance;
+    }
+
+    accelerateParticleIfNeeded(particle, elapsed) {
+        if (this.distanceFromParticle(particle) > this.radius) { return; }
+
+        particle.accX += this.force * elapsed * this.direction.x;
+        particle.accY += this.force * elapsed * this.direction.y;
     }
 }
 
@@ -192,7 +249,13 @@ function setup() {
             radiusChangeByMove: Number(INPUTS.mouseRadiusChangeByMove.value),
             radiusChangeByClick: Number(INPUTS.mouseRadiusChangeByClick.value),
             radiusDecay: Number(INPUTS.mouseRadiusDecay.value),
-            maxRadius: Number(INPUTS.mouseMaxRadius.value)
+            maxRadius: Number(INPUTS.mouseMaxRadius.value),
+        },
+        movement: {
+            time: 2,
+            rangeFraction: 1,
+            force: 10000,
+            maxMovements: 50
         }
     };
     console.log("Configuration:");
@@ -263,6 +326,7 @@ function update(elapsed) {
     updateMouseRadius(elapsed);
     updateParticles(elapsed);
     updateMovingParticles(elapsed);
+    updateMouseMovements(elapsed);
     updateTexts(elapsed);
 }
 
@@ -290,6 +354,18 @@ function updateMovingParticles(elapsed) {
     for(particle of movingParticles) {
         particle.update(elapsed);
     }
+}
+
+function updateMouseMovements(elapsed) {
+    var newMouseMovements = []
+    for (mouseMovement of mouseMovements) {
+        mouseMovement.update(elapsed);
+        if (mouseMovement.active) {
+            newMouseMovements.push(mouseMovement);
+        }
+    }
+
+    mouseMovements = newMouseMovements;
 }
 
 function updateTexts(elapsed) {
@@ -369,17 +445,35 @@ function setShapeLineAndStart() {
     renderer.start();
 }
 
-function onPointerDown(e) {}
+function onPointerEnter(e) {
+    if (e.pointerType !==  "mouse") { return; }
+
+    mouse.x = e.offsetX;
+    mouse.y = e.offsetY;
+}
+
+function onPointerLeave(e) {
+    if (e.pointerType !==  "mouse") { return; }
+
+    mouse.x = mouse.y = 0;
+}
 
 function onPointerMove(e) {
-    if (e.pointerType != "mouse") {
-        return;
+    if (e.pointerType !==  "mouse") { return; }
+
+    mouseMovements.push(
+        new MouseMovement(mouse.x, mouse.y, e.offsetX, e.offsetY, CONF.movement.time)
+    );
+    if (mouseMovements.length > CONF.movement.maxMovements) {
+        mouseMovements.shift();
     }
 
     mouse.x = e.offsetX;
     mouse.y = e.offsetY;
     mouse.radius = clamp(mouse.radius + CONF.mouse.radiusChangeByMove, 0, CONF.mouse.maxRadius);
 }
+
+function onPointerDown(e) {}
 
 function onPointerUp(e) {}
 
@@ -399,8 +493,10 @@ shapeCircleInput.addEventListener("click", setShapeCircleAndstart);
 shapeLineInput.addEventListener("click", setShapeLineAndStart);
 resetInput.addEventListener("click", (e) => setTimeout(renderer.startFunction, 1));
 
-canvas.addEventListener("pointerdown", onPointerDown);
+canvas.addEventListener("pointerenter", onPointerEnter);
+canvas.addEventListener("pointerleave", onPointerLeave);
 canvas.addEventListener("pointermove", onPointerMove);
+canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointerup", onPointerUp);
 canvas.addEventListener("click", onClick);
 
