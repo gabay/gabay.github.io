@@ -40,7 +40,7 @@ var ww = canvas.width = window.innerWidth;
 var wh = canvas.height = window.innerHeight;
 
 var CONF = {};
-var SHAPE = "circle";
+var SHAPE = "line";
 
 // Util functionality
 
