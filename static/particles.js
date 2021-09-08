@@ -278,13 +278,13 @@ function setupImageAndParticles() {
 
 function setupParticles() {
     const imageData = getImageData();
-    const data = imageData.data;
+    const pixelIntensity = getPixelIntensityArray(imageData);
 
     particles = [];
     while(particles.length < CONF.particle.count) {
         x = Math.floor(random(0, imageData.width));
         y = Math.floor(random(0, imageData.height));
-        if(getPixelIntensity(imageData, x, y) < 100) {
+        if(pixelIntensity[y][x] < random(0, 128)) {
             particles.push(new Particle(x, y));
         }
     }
@@ -305,6 +305,18 @@ function getImageData() {
     const imageData = ctx.getImageData(0, 0, ww, wh);
     clear();
     return imageData;
+}
+
+function getPixelIntensityArray(imageData) {
+    pixelIntensity = [];
+    for(var y = 0; y < imageData.height; y++) {
+        var pixelIntensityRow = [];
+        for(var x = 0; x < imageData.width; x++) {
+            pixelIntensityRow.push(getPixelIntensity(imageData, x, y));
+        }
+        pixelIntensity.push(pixelIntensityRow);
+    }
+    return pixelIntensity;
 }
 
 function getPixelIntensity(imageData, x, y) {
