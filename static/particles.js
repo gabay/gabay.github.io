@@ -21,7 +21,12 @@ var INPUTS = {
     mouseRadiusChangeByMove: document.querySelector("#mouse-radius-change-by-move"),
     mouseRadiusChangeByClick: document.querySelector("#mouse-radius-change-by-click"),
     mouseRadiusDecay: document.querySelector("#mouse-radius-decay"),
-    mouseMaxRadius: document.querySelector("#mouse-max-radius")
+    mouseMaxRadius: document.querySelector("#mouse-max-radius"),
+    mouseMovementDuration: document.querySelector("#mouse-movement-duration"),
+    mouseMovementInitialRange: document.querySelector("#mouse-movement-initial-range"),
+    mouseMovementFinalRange: document.querySelector("#mouse-movement-final-range"),
+    mouseMovementInitialAcceleration: document.querySelector("#mouse-movement-initial-acceleration"),
+    mouseMovementFinalAcceleration: document.querySelector("#mouse-movement-final-acceleration")
 }
 var shapeCircleInput = document.querySelector("#shape-circle");
 var shapeLineInput = document.querySelector("#shape-line");
@@ -149,8 +154,8 @@ class MouseMovement {
         this.maxAge = maxAge;
         this.distance = distance(x1, y1, x2, y2);
         this.direction = direction(x1, y1, x2, y2);
-        this.radius = 0;
-        this.force = 0;
+        this.range = 0;
+        this.acceleration = 0;
         this.active = true;
     }
 
@@ -158,10 +163,23 @@ class MouseMovement {
         this.age += elapsed;
 
         const ageFraction = this.age / this.maxAge;
-        const multiplier = 2 * Math.min(ageFraction, 1 - ageFraction);
-        this.radius = this.distance * CONF.movement.rangeFraction * multiplier;
-        this.force = CONF.movement.force * multiplier;
+        this.updateRange(ageFraction);
+        this.updateAcceleration(ageFraction);
         this.active = this.age < this.maxAge;
+    }
+
+    updateRange(ageFraction) {
+        this.range = (
+            CONF.movement.initialRange * (1 - ageFraction) +
+            CONF.movement.finalRange * ageFraction
+        );
+    }
+
+    updateAcceleration(ageFraction) {
+        this.acceleration = (
+            CONF.movement.initialAcceleration * (1 - ageFraction) +
+            CONF.movement.finalAcceleration * ageFraction
+        );
     }
 
     distanceFromParticle(particle) {
@@ -171,10 +189,12 @@ class MouseMovement {
     }
 
     accelerateParticleIfNeeded(particle, elapsed) {
-        if (this.distanceFromParticle(particle) > this.radius) { return; }
+        if (this.distanceFromParticle(particle) > this.range) {
+            return;
+        }
 
-        particle.accX += this.force * elapsed * this.direction.x;
-        particle.accY += this.force * elapsed * this.direction.y;
+        particle.accX += this.acceleration * elapsed * this.direction.x * random(0, 2);
+        particle.accY += this.acceleration * elapsed * this.direction.y * random(0, 2);
     }
 }
 
@@ -252,10 +272,12 @@ function setup() {
             maxRadius: Number(INPUTS.mouseMaxRadius.value),
         },
         movement: {
-            time: 2,
-            rangeFraction: 1,
-            force: 10000,
-            maxMovements: 50
+            duration: Number(INPUTS.mouseMovementDuration.value),
+            initialRange: Number(INPUTS.mouseMovementInitialRange.value),
+            finalRange: Number(INPUTS.mouseMovementFinalRange.value),
+            initialAcceleration: Number(INPUTS.mouseMovementInitialAcceleration.value),
+            finalAcceleration: Number(INPUTS.mouseMovementFinalAcceleration.value),
+            maxMovements: 20
         }
     };
     console.log("Configuration:");
@@ -474,7 +496,7 @@ function onPointerMove(e) {
     if (e.pointerType !==  "mouse") { return; }
 
     mouseMovements.push(
-        new MouseMovement(mouse.x, mouse.y, e.offsetX, e.offsetY, CONF.movement.time)
+        new MouseMovement(mouse.x, mouse.y, e.offsetX, e.offsetY, CONF.movement.duration)
     );
     if (mouseMovements.length > CONF.movement.maxMovements) {
         mouseMovements.shift();
