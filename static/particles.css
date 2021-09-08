@@ -3,6 +3,10 @@ canvas {
   border: solid 2px brown;
 }
 
+input[type=number] {
+  width:100px;
+}
+
 /*
 @media screen and (min-width: 801px) {
   canvas {
