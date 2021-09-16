@@ -91,6 +91,7 @@ class Particle {
         this.vy = 0;
         this.accX = 0;
         this.accY = 0;
+        this.randomDirection = random(0, 2 * Math.PI);
 
         this.color = colors[Math.floor(Math.random() * colors.length)];
     }
@@ -111,8 +112,9 @@ class Particle {
             mouseMovement.accelerateParticleIfNeeded(this, elapsed);
         }
 
-        this.accX += random(-CONF.particle.randomAcceleration * elapsed, CONF.particle.randomAcceleration * elapsed);
-        this.accY += random(-CONF.particle.randomAcceleration * elapsed, CONF.particle.randomAcceleration * elapsed);
+        var randomAcceleration = random(0, CONF.particle.randomAcceleration * elapsed);
+        this.accX += randomAcceleration * Math.cos(this.randomDirection);
+        this.accY += randomAcceleration * Math.sin(this.randomDirection);
 
         this.vx = (this.vx + this.accX) * (1 - CONF.particle.drag) * elapsed;
         this.vy = (this.vy + this.accY) * (1 - CONF.particle.drag) * elapsed;
@@ -120,8 +122,10 @@ class Particle {
         this.x += this.vx;
         this.y += this.vy;
 
+        this.randomDirection += random(-CONF.particle.rotation * elapsed,
+                                       CONF.particle.rotation * elapsed);
         this.rotation += random(-CONF.particle.rotation * elapsed,
-             CONF.particle.rotation * elapsed);
+                                CONF.particle.rotation * elapsed);
     }
 
     draw() {
