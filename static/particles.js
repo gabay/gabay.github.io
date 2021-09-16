@@ -37,6 +37,8 @@ var movingParticles = [];
 var mouse = {x:0, y:0, radius:0};
 var mouseMovements = [];
 var image = new Image();
+var pixel = ctx.createImageData(1, 1);
+pixel.data[3] = 255;
 
 // var colors = ["#468966","#FFF0A5", "#FFB03B","#B64926", "#8E2800"];     // Original
 var colors = ["#3c3c3c", "#696969", "#969696", "#c3c3c3"];    // Grayscale
@@ -123,22 +125,37 @@ class Particle {
     }
 
     draw() {
-        ctx.beginPath();
-        if (SHAPE == "circle") {
-            ctx.fillStyle = this.color;
-            ctx.arc(this.x, this.y, this.size, Math.PI * 2, false);
-            ctx.fill();
+        if (this.length == 1) {
+            this.drawPixel();
+        } else if (SHAPE == "circle") {
+            this.drawCircle();
         } else if (SHAPE == "line") {
-            ctx.strokeStyle = this.color;
-            let offsetX = this.size * Math.cos(this.rotation);
-            let offsetY = this.size * Math.sin(this.rotation);
-            ctx.moveTo(this.x - offsetX, this.y - offsetY);
-            ctx.lineTo(this.x + offsetX, this.y + offsetY);
-            ctx.stroke();
+            this.drawLine();
         } else {
             alert("Unknown shape: " + SHAPE)
         }
+    }
 
+    drawPixel() {
+        pixel.data[0] = pixel.data[1] = pixel.data[2] = this.color;
+        ctx.putImageData(pixel, Math.round(this.x), Math.round(this.y));
+    }
+
+    drawCircle() {
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.arc(this.x, this.y, this.size, Math.PI * 2, false);
+        ctx.fill();
+    }
+
+    drawLine() {
+        ctx.beginPath();
+        ctx.strokeStyle = this.color;
+        let offsetX = this.size * Math.cos(this.rotation);
+        let offsetY = this.size * Math.sin(this.rotation);
+        ctx.moveTo(this.x - offsetX, this.y - offsetY);
+        ctx.lineTo(this.x + offsetX, this.y + offsetY);
+        ctx.stroke();
     }
 }
 
