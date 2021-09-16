@@ -189,7 +189,7 @@ class MouseMovement {
     }
 
     accelerateParticleIfNeeded(particle, elapsed) {
-        if (this.distanceFromParticle(particle) > this.range) {
+        if (this.distance == 0 || this.distanceFromParticle(particle) > this.range) {
             return;
         }
 
@@ -494,6 +494,7 @@ function onPointerLeave(e) {
 
 function onPointerMove(e) {
     if (e.pointerType !==  "mouse") { return; }
+    if (mouse.x == e.offsetX && mouse.y == e.offsetY) { return; }
 
     mouseMovements.push(
         new MouseMovement(mouse.x, mouse.y, e.offsetX, e.offsetY, CONF.movement.duration)
