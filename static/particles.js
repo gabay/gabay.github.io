@@ -304,11 +304,10 @@ function setup() {
 }
 
 function setupImageAndParticles() {
-    if (ww <= 800) {
-        image.src = "/static/image/avira_mobile.png"
-    } else {
-        image.src = "/static/image/avira_desktop.png"
-    }
+    image.src = "/static/image/Shvil.png"
+    // if (ww <= 800) { image.src = "/static/image/avira_mobile.png"; }
+    // else { image.src = "/static/image/avira_desktop.png"; }
+
     // canvas.style.backgroundImage = "url(" + image.src + ")";
     // canvas.style.backgroundRepeat = "no-repeat";
     // canvas.style.backgroundSize = "100% 100%";
