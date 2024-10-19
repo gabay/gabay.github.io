@@ -4,10 +4,10 @@ layout: default
 
 Welcome to my github page.
 
-## Technical writings
+## My Notes
 
 * Integrating Mailcow and Authelia
-* Integrating Mailcow and Nextcloud
+* [Integrating Mailcow and Nextcloud](notes/mailcow-nextcloud)
 
 ## Notable Repositories
 
