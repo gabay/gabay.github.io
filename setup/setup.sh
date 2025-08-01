@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e -o pipefail
 
@@ -9,13 +9,13 @@ function title {
 }
 
 title "Packages"
-curl -sS https://gabay.github.io/setup/packages.sh | sh
+curl -sS https://gabay.github.io/setup/packages.sh | bash
 
 title "Nvidia"
-curl -sS https://gabay.github.io/setup/nvidia.sh | sh
+curl -sS https://gabay.github.io/setup/nvidia.sh | bash
 
 title "Docker"
-curl -sS https://gabay.github.io/setup/docker.sh | sh
+curl -sS https://gabay.github.io/setup/docker.sh | bash
 
 title "Starship"
-curl -sS https://gabay.github.io/setup/starship.sh | sh
+curl -sS https://gabay.github.io/setup/starship.sh | bash
