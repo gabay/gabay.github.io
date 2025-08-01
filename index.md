@@ -6,6 +6,7 @@ Useful links.
 
 ## Sections
 
+* [Setup scripts](setup)
 * [Integrating Mailcow and Nextcloud](notes/mailcow-nextcloud)
 
 

@@ -1,0 +1,15 @@
+---
+layout: default
+---
+
+[home](/)
+
+## Setup Scripts
+
+* [Setup Everything](setup.sh)
+* [Setup Packages](packages.sh)
+* [Setup Docker](docker.sh)
+* [Setup Nvidia drivers](nvidia.sh)
+* [Setup Terminal (Starship)](starship.sh)
+* [Reboot](reboot.sh)
+
