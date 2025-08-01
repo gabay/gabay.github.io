@@ -2,12 +2,12 @@
 layout: default
 ---
 
-Welcome to my github page.
+Useful links.
 
-## My Notes
+## Sections
 
-* Integrating Mailcow and Authelia
 * [Integrating Mailcow and Nextcloud](notes/mailcow-nextcloud)
+
 
 ## Notable Repositories
 
@@ -21,6 +21,7 @@ Welcome to my github page.
 * [2021 (Python)](https://github.com/gabay/AoC2021)
 * [2022 (Go)](https://github.com/gabay/AoC2022)
 * [2023 (Rust)](https://github.com/gabay/AoC2023)
+* [2024 (Python)](https://github.com/gabay/AoC2024)
 
 ## Bits from the Internet
 
