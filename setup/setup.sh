@@ -19,3 +19,6 @@ curl -sS https://gabay.github.io/setup/docker.sh | bash
 
 title "Starship"
 curl -sS https://gabay.github.io/setup/starship.sh | bash
+
+title "Tailscale"
+curl -sS https://gabay.github.io/setup/tailscale.sh | bash
