@@ -11,5 +11,6 @@ layout: default
 * [Setup Docker](docker.sh)
 * [Setup Nvidia drivers](nvidia.sh)
 * [Setup Terminal (Starship)](starship.sh)
+* [Setup tailscale](tailscale.sh)
 * [Reboot](reboot.sh)
 
