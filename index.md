@@ -23,6 +23,7 @@ Useful links.
 * [2022 (Go)](https://github.com/gabay/AoC2022)
 * [2023 (Rust)](https://github.com/gabay/AoC2023)
 * [2024 (Python)](https://github.com/gabay/AoC2024)
+* [2025 (Rust)](https://github.com/gabay/AoC2025)
 
 ## Bits from the Internet
 
